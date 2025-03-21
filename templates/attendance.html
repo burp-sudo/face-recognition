@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Records</title>
+</head>
+<body>
+    <h2>Attendance Records</h2>
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Stream</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record[0] }}</td>
+                <td>{{ record[1] }}</td>
+                <td>{{ record[2] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <a href="/">← Back to Attendance</a>
+</body>
+</html>

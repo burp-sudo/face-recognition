@@ -5,10 +5,9 @@
 </head>
 <body>
     <h2>Register New Student</h2>
-
     <form id="registerForm" method="POST">
-        <input type="text" name="name" placeholder="Full Name" required><br><br>
-        <input type="text" name="stream" placeholder="Stream (e.g., CS)" required><br><br>
+        <input name="name" placeholder="Full Name" required><br><br>
+        <input name="stream" placeholder="Stream" required><br><br>
         <input type="hidden" name="image_data" id="image_data">
         <video id="video" width="640" height="480" autoplay></video><br><br>
         <button type="button" onclick="capturePhoto()">Capture & Register</button>

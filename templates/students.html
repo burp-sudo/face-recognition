@@ -22,7 +22,7 @@
                 <td>{{ student[1] }}</td>
                 <td>{{ student[2] }}</td>
                 <td>
-                    <img src="/{{ student[3] }}" width="100">
+                    <img src="{{ url_for('serve_image', filename=student[3].split('/')[-1]) }}" width="100">
                 </td>
                 <td>
                     <form action="{{ url_for('delete_student', student_id=student[0]) }}" method="post" onsubmit="return confirm('Delete this student?');">

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, Response, url_for
+from flask import Flask, render_template, request, redirect, Response, url_for, send_from_directory
 import sqlite3
 import os
 import cv2
@@ -6,20 +6,14 @@ import face_recognition
 import numpy as np
 from datetime import datetime
 import base64
-from flask import send_from_directory
-
 
 app = Flask(__name__)
-
-@app.route('/dataset/<path:filename>')
-def serve_image(filename):
-    return send_from_directory('dataset', filename)
 
 # Ensure dataset folder exists
 if not os.path.exists('dataset'):
     os.makedirs('dataset')
 
-# Initialize SQLite database
+# Init DB
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -42,7 +36,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Load student faces from DB
+# Load student faces
 def load_known_faces():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -50,9 +44,7 @@ def load_known_faces():
     rows = c.fetchall()
     conn.close()
 
-    encodings = []
-    names = []
-    ids = []
+    encodings, names, ids = [], [], []
 
     for student_id, name, img_path in rows:
         if os.path.exists(img_path):
@@ -65,23 +57,21 @@ def load_known_faces():
 
     return ids, names, encodings
 
-# Mark attendance if not already present today
+# Mark attendance
 def mark_attendance(student_id):
     today = datetime.now().strftime('%Y-%m-%d')
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute("SELECT * FROM attendance WHERE student_id = ? AND date = ?", (student_id, today))
-    already_marked = c.fetchone()
-    if not already_marked:
+    if not c.fetchone():
         c.execute("INSERT INTO attendance (student_id, date) VALUES (?, ?)", (student_id, today))
         conn.commit()
     conn.close()
 
-# Stream webcam with face recognition
+# Video stream with face recognition
 def gen_frames():
     known_ids, known_names, known_encodings = load_known_faces()
     cap = cv2.VideoCapture(0)
-
     process_this_frame = True
 
     while True:
@@ -107,18 +97,15 @@ def gen_frames():
                     student_id = known_ids[best_match]
                     name = known_names[best_match]
                     mark_attendance(student_id)
-
                 face_names.append(name)
 
-        process_this_frame = not process_this_frame  # Toggle frame processing
+        process_this_frame = not process_this_frame
 
-        # Draw results
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             top *= 4
             right *= 4
             bottom *= 4
             left *= 4
-
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2)
 
@@ -129,19 +116,13 @@ def gen_frames():
 
     cap.release()
 
-
-# Home route
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Webcam feed route
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# Register new student
-import base64
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -183,28 +164,35 @@ def students():
 def delete_student(student_id):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-
-    # Get the image path first
     c.execute("SELECT image_path FROM students WHERE id = ?", (student_id,))
     row = c.fetchone()
-    if row:
-        image_path = row[0]
-        if os.path.exists(image_path):
-            os.remove(image_path)
+    if row and os.path.exists(row[0]):
+        os.remove(row[0])
 
-    # Delete from students
     c.execute("DELETE FROM students WHERE id = ?", (student_id,))
-
-    # Optionally: clean attendance too
     c.execute("DELETE FROM attendance WHERE student_id = ?", (student_id,))
-
     conn.commit()
     conn.close()
-
     return redirect(url_for('students'))
 
+@app.route('/attendance')
+def attendance():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("""
+        SELECT a.date, s.name, s.stream
+        FROM attendance a
+        JOIN students s ON a.student_id = s.id
+        ORDER BY a.date DESC
+    """)
+    records = c.fetchall()
+    conn.close()
+    return render_template('attendance.html', records=records)
 
-# Run the app
+@app.route('/dataset/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('dataset', filename)
+
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
