@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registered Students</title>
+</head>
+<body>
+    <h2>Registered Students</h2>
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Stream</th>
+                <th>Photo</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student[0] }}</td>
+                <td>{{ student[1] }}</td>
+                <td>{{ student[2] }}</td>
+                <td>
+                    <img src="/{{ student[3] }}" width="100">
+                </td>
+                <td>
+                    <form action="{{ url_for('delete_student', student_id=student[0]) }}" method="post" onsubmit="return confirm('Delete this student?');">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <a href="/">← Back to Attendance</a>
+</body>
+</html>
